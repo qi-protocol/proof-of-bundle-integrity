@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import "./interfaces/IAxiomV2Client.sol";
+
 abstract contract AxiomV2Client is IAxiomV2Client {
     address public immutable axiomV2QueryAddress;
 
