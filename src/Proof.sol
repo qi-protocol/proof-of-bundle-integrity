@@ -115,8 +115,8 @@ contract ProofOfIntegrity is AxiomV2Client {
         address callerAddr,
         bytes32 querySchema
     ) internal virtual override {
-      require(sourceChainId == callbackSourceChainId, "AxiomV2: caller sourceChainId mismatch");
-      require(querySchema == axiomCallbackQuerySchema, "AxiomV2: query schema mismatch");
+      require(sourceChainId == callbackSourceChainId, "ProofOfIntegrity: caller sourceChainId mismatch");
+      require(querySchema == axiomCallbackQuerySchema, "ProofOfIntegrity: query schema mismatch");
     }
 
     function _axiomV2Callback(
@@ -134,6 +134,9 @@ contract ProofOfIntegrity is AxiomV2Client {
         address senderAddress = address(uint160(uint256(axiomResults[3])));
 
         address blockBuilderAddress = bundleVerificationMap[senderAddress][blockNumber];
+
+        require(bundleSizeMap[senderAddress][blockNumber] != 0, "ProofOfIntegrity: wrong senderAddress or blockNumber");
+        require(bundleIndexMap[senderAddress][blockNumber] != 0, "ProofOfIntegrity: wrong senderAddress or blockNumber");
 
         if(
             bundleSize != bundleSizeMap[senderAddress][blockNumber] || 
