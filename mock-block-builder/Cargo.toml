@@ -1,0 +1,26 @@
+[package]
+name = "mock-block-builder"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dotenv = "0.15.0"
+env_logger = "0.10.0"
+ethers = "2.0.10"
+hashbrown = "0.14.0"
+expanded-pathbuf = "0.1.2"
+ethers-flashbots-test = { git = "https://github.com/da-bao-jian/ethers-flashbots.git", branch = "master" }
+dirs = "5.0.1"
+jsonrpsee = { version = "0.20.0", features = ["server", "macros", "client"] }
+pin-utils = "0.1.0"
+tokio = { version = "1.28.2", features = ["full"] }
+tempdir = "0.3.7"
+tracing = "0.1.37"
+serde = "1.0.188"
+serde_json = "1.0.107"
+anyhow = "1.0.75"
+async-trait = "0.1.73"
+log = "0.4.20"
+tracing-subscriber = "0.3.17"
