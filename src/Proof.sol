@@ -19,18 +19,12 @@ contract ProofOfIntegrity is AxiomV2Client {
     event ChallengeSuccess(address caller, uint amount, address blockBuilderAddress);
 
     address _deployer;
-    uint64 public callbackSourceChainId;
-    bytes32 public axiomCallbackQuerySchema;
 
     constructor(
         address deployer_,
-        address _axiomV2QueryAddress,
-        uint64 _callbackSourceChainId,
-        bytes32 _axiomCallbackQuerySchema
+        address _axiomV2QueryAddress
     ) AxiomV2Client(_axiomV2QueryAddress) {
       _deployer = deployer_;
-      callbackSourceChainId = _callbackSourceChainId;
-      axiomCallbackQuerySchema = _axiomCallbackQuerySchema;
     }
       
 
@@ -52,12 +46,16 @@ contract ProofOfIntegrity is AxiomV2Client {
       _;
     }
 
-    function checkStake(address blockBuilderAddress) view public returns(uint256 stakeAmount) {
+    function checkStake(address blockBuilderAddress) view public returns(uint stakeAmount) {
       stakeAmount = stakeMap[blockBuilderAddress];
     }
 
     function checkBundleSize(address senderAddress, uint blockNumber) view public returns(uint256 bundleSize){
       bundleSize = bundleSizeMap[senderAddress][blockNumber];
+    }
+
+    function checkBundleVerifier(address senderAddress, uint blockNumber) view public returns(address bundleVerifier){
+      bundleVerifier = bundleVerificationMap[senderAddress][blockNumber];
     }
 
     function checkBundleIndex(address senderAddress, uint blockNumber) view public returns(uint256 bundleIndex){
@@ -68,6 +66,7 @@ contract ProofOfIntegrity is AxiomV2Client {
       stakeMap[msg.sender] += msg.value;
     }
 
+
     function addBlockBuilder(address blockBuilderAddress) onlyDeployer external {
       whitelist[blockBuilderAddress] = true;
     }
@@ -76,7 +75,6 @@ contract ProofOfIntegrity is AxiomV2Client {
         onlyBlockBuilder 
     {
       require(blockNumber == block.number, "blockNumber has to be the current block number");
-      require(bundleSizeMap[sender][blockNumber] == bundleSize, "wrong bundle size");
       require(bundleIndex > 0, "bundle index has to be larger than 0");
 
       // Block builder needs to input the exactly where he/she wants the bundle to be placed; other wise he/she will fail the challenge
@@ -93,7 +91,8 @@ contract ProofOfIntegrity is AxiomV2Client {
     function stampBundle(uint bundleSize, uint blockNumber, uint bundleIndex) public {
 
       // Bundle index has to be larger than one since the top transaction has to be block builder's call to verifyBundle()
-      require(bundleIndex > 1, "bundle index has to be larger than 1");
+      require((bundleIndex == 0 
+              || bundleIndex > 1), "bundle index has to be larger than 1");
       bundleSizeMap[msg.sender][blockNumber] = bundleSize;
 
       // function always reverts without a block builder calling a verifyBundle first
@@ -110,14 +109,6 @@ contract ProofOfIntegrity is AxiomV2Client {
       }
     }
 
-    function _validateAxiomV2Call(
-        uint64 sourceChainId,
-        address callerAddr,
-        bytes32 querySchema
-    ) internal virtual override {
-      require(sourceChainId == callbackSourceChainId, "ProofOfIntegrity: caller sourceChainId mismatch");
-      require(querySchema == axiomCallbackQuerySchema, "ProofOfIntegrity: query schema mismatch");
-    }
 
     function _axiomV2Callback(
         uint64 sourceChainId,
@@ -128,31 +119,34 @@ contract ProofOfIntegrity is AxiomV2Client {
         bytes calldata callbackExtraData
     ) internal virtual override {
 
-        uint256 bundleSize = uint256(axiomResults[0]);
-        uint256 indexNumber = uint256(axiomResults[1]);
-        uint256 blockNumber = uint256(axiomResults[2]);
-        address senderAddress = address(uint160(uint256(axiomResults[3])));
+      // minus one because bundle size is no. of tx in a bundle
+      // E,g. if the top topTxIdx is 1, and bottom bottomTxIdx is 3, bundle size is 1
+      // however the returned result is (bottomTxIdx - topTxIdx) = 2
+      uint256 bundleSize = uint256(axiomResults[0]) - 1;
+      // minus one because the returned index is the block builder's tx
+      uint256 indexNumber = uint256(axiomResults[1]) - 1;
+      uint256 blockNumber = uint256(axiomResults[2]);
+      address senderAddress = address(uint160(uint256(axiomResults[3])));
 
-        address blockBuilderAddress = bundleVerificationMap[senderAddress][blockNumber];
+      address blockBuilderAddress = bundleVerificationMap[senderAddress][blockNumber];
 
-        require(bundleSizeMap[senderAddress][blockNumber] != 0, "ProofOfIntegrity: wrong senderAddress or blockNumber");
-        require(bundleIndexMap[senderAddress][blockNumber] != 0, "ProofOfIntegrity: wrong senderAddress or blockNumber");
+      require(bundleSizeMap[senderAddress][blockNumber] != 0, "ProofOfIntegrity: wrong senderAddress or blockNumber");
+      require(bundleIndexMap[senderAddress][blockNumber] != 0, "ProofOfIntegrity: wrong senderAddress or blockNumber");
 
-        if(
-            bundleSize != bundleSizeMap[senderAddress][blockNumber] || 
-            indexNumber != bundleIndexMap[senderAddress][blockNumber]
-        ){
-          uint256 amount = stakeMap[blockBuilderAddress];
-          stakeMap[blockBuilderAddress] = 0;
-          payable(callerAddr).transfer(amount);
-          emit ChallengeSuccess(
-              callerAddr,
-              amount,
-              blockBuilderAddress
-          );
-        } else {
-          revert ChallengeFailed(callerAddr, blockBuilderAddress);
-        }
-
+      if(
+          bundleSize != bundleSizeMap[senderAddress][blockNumber] || 
+          indexNumber != bundleIndexMap[senderAddress][blockNumber]
+      ){
+        uint256 amount = stakeMap[blockBuilderAddress];
+        stakeMap[blockBuilderAddress] = 0;
+        payable(callerAddr).transfer(amount);
+        emit ChallengeSuccess(
+            callerAddr,
+            amount,
+            blockBuilderAddress
+        );
+      } else {
+        revert ChallengeFailed(callerAddr, blockBuilderAddress);
+      }
     }
 }
