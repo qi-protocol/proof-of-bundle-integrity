@@ -1,3 +1,4 @@
+mod sender;
 use async_trait::async_trait;
 use dotenv::dotenv;
 use env_logger::Env;
@@ -9,20 +10,21 @@ use ethers::{
     types::{Address, TransactionRequest, U256},
     utils::{Geth, GethInstance},
 };
-use ethers_flashbots_test::{relay::SendBundleResponse, BundleRequest};
+use ethers_flashbots_test::relay::SendBundleResponse;
 use jsonrpsee::server::ServerBuilder;
 use jsonrpsee::{core::RpcResult, proc_macros::rpc};
+use sender::BundleReq;
 use std::sync::Arc;
 use std::{ops::Mul, time::Duration};
 use tempdir::TempDir;
 use tracing_subscriber;
 
 const SEED_PHRASE: &str = "test test test test test test test test test test test junk";
-const RPC_ENDPOINT: &str = "127.0.0.1:3001";
 
 pub type SignerType<M> = NonceManagerMiddleware<SignerMiddleware<Arc<M>, LocalWallet>>;
 abigen!(WETH, "src/abi/WETH.json",);
 abigen!(ERC20, "src/abi/ERC20.json",);
+abigen!(Proof, "src/abi/ProofOfIntegrity.json",);
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -37,6 +39,7 @@ async fn main() -> anyhow::Result<()> {
     let client = Arc::new(client);
     let _erc20 = deploy_weth(client.clone()).await?;
     let _weth = deploy_weth(client.clone()).await?;
+    let _proof = deploy_proof(client.clone()).await?;
 
     let _ = std::thread::Builder::new()
         .name("mock-builder".to_string())
@@ -54,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
                 let task = tokio::spawn(async move {
                     log::info!("Starting RPC server");
                     let server = ServerBuilder::new()
-                        .build(RPC_ENDPOINT)
+                        .build("127.0.0.1:3001".to_string())
                         .await
                         .map_err(|e| anyhow::anyhow!("Error starting server: {:?}", e))
                         .unwrap();
@@ -138,7 +141,22 @@ pub async fn setup_geth() -> anyhow::Result<(GethInstance, SignerType<Provider<H
     provider.send_transaction(tx, None).await?.await?;
     Ok((geth, client))
 }
-
+pub async fn deploy_proof<M: Middleware + 'static>(
+    client: Arc<M>,
+) -> anyhow::Result<DeployedContract<Proof<M>>> {
+    let (saf, receipt) = Proof::deploy(
+        client,
+        (
+            "0xddd453864b2C7a56FC934F7F26A4e8c608B1A4a4".parse::<Address>()?,
+            "0x8DdE5D4a8384F403F888E1419672D94C570440c9".parse::<Address>()?,
+        ),
+    )?
+    .send_with_receipt()
+    .await?;
+    println!("saf:{:?}", saf);
+    let addr = receipt.contract_address.unwrap_or(Address::zero());
+    Ok(DeployedContract::new(saf, addr))
+}
 pub async fn deploy_weth<M: Middleware + 'static>(
     client: Arc<M>,
 ) -> anyhow::Result<DeployedContract<WETH<M>>> {
@@ -168,12 +186,21 @@ impl<M: Middleware + 'static + Send> MockBuilder<M> {
 #[rpc(server, namespace = "builder")]
 pub trait BuilderApi {
     #[method(name = "receiveBundle")]
-    async fn receive_bundle(&self, bundle: BundleRequest) -> RpcResult<SendBundleResponse>;
+    async fn receive_bundle(&self, bundle: BundleReq) -> RpcResult<SendBundleResponse>;
 }
 
 #[async_trait]
 impl<M: Middleware + 'static + Send> BuilderApiServer for MockBuilder<M> {
-    async fn receive_bundle(&self, bundle: BundleRequest) -> RpcResult<SendBundleResponse> {
+    // This always revert without inserting the block builder transaction
+    async fn receive_bundle(&self, bundle: BundleReq) -> RpcResult<SendBundleResponse> {
+        let tx = bundle.tx;
+        let res = self
+            .provider
+            .call(&tx, None)
+            .await
+            .map_err(|e| anyhow::anyhow!("{:?}", e));
+        println!("res:{:?}", res);
+
         Ok(SendBundleResponse::default())
     }
 }

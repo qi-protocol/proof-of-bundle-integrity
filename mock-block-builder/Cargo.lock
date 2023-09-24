@@ -2149,12 +2149,14 @@ dependencies = [
  "jsonrpsee",
  "log",
  "pin-utils",
+ "reqwest",
  "serde",
  "serde_json",
  "tempdir",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
 ]
 
 [[package]]
