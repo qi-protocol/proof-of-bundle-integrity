@@ -199,7 +199,8 @@ impl<M: Middleware + 'static + Send> BuilderApiServer for MockBuilder<M> {
             .call(&tx, None)
             .await
             .map_err(|e| anyhow::anyhow!("{:?}", e));
-        println!("res:{:?}", res);
+        println!("{:?}", res);
+        println!("stampBundle() call's execution reverted. Block builder needs to call verifyBundle() first to verify the bundle");
 
         Ok(SendBundleResponse::default())
     }
