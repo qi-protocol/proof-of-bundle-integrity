@@ -139,7 +139,8 @@ contract ProofOfIntegrity is AxiomV2Client {
       ){
         uint256 amount = stakeMap[blockBuilderAddress];
         stakeMap[blockBuilderAddress] = 0;
-        payable(callerAddr).transfer(amount);
+        (bool success, ) = callerAddr.call{value: amount}("");
+        require(success, "ProofOfIntegrity: failed to transfer funds");
         emit ChallengeSuccess(
             callerAddr,
             amount,
