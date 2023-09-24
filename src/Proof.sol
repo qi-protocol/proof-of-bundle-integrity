@@ -74,7 +74,7 @@ contract ProofOfIntegrity is AxiomV2Client {
     function verifyBundle(uint bundleSize, address sender, uint blockNumber, uint bundleIndex) external
         onlyBlockBuilder 
     {
-      require(blockNumber == block.number, "blockNumber has to be the current block number");
+      //require(blockNumber == block.number, "blockNumber has to be the current block number");
       require(bundleIndex > 0, "bundle index has to be larger than 0");
 
       // Block builder needs to input the exactly where he/she wants the bundle to be placed; other wise he/she will fail the challenge
