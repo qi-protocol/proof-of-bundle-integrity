@@ -34,3 +34,7 @@ path = "src/main.rs"
 [[bin]]
 name ="sender"
 path = "src/sender.rs"
+
+[[bin]]
+name ="call"
+path = "src/call.rs"
