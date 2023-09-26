@@ -77,7 +77,8 @@ contract ProofOfIntegrity is AxiomV2Client {
       require(blockNumber == block.number, "blockNumber has to be the current block number");
       require(bundleIndex > 0, "bundle index has to be larger than 0");
 
-      // Block builder needs to input the exactly where he/she wants the bundle to be placed; other wise he/she will fail the challenge
+      // Block builder needs to specify exactly where the bundle is placed
+      // otherwise he/she will fail the challenge later and be slashed
       bundleIndexMap[sender][blockNumber] = bundleIndex;
       // record the block builder address as the value in bundleVerificationMap
       bundleVerificationMap[sender][blockNumber] = msg.sender;
@@ -97,11 +98,10 @@ contract ProofOfIntegrity is AxiomV2Client {
 
       // function always reverts without a block builder calling a verifyBundle first
       if(bundleVerificationMap[msg.sender][blockNumber] == address(0)) {
-          // logs the  bundleIndex and bundleSize when the simulating using `eth_call`
-          // also reverts if the block builder has not include a `verifyBundle` at the top of the bundle
+          // logs the  bundleIndex and bundleSize during the simulation using `eth_call`
           revert BundleVerificationFailed(msg.sender, bundleIndex, bundleSize);
       } else {
-        // If bundleIndex is not set to zero, it means the sender has specified a particular index, so it checked whether the block builder has input the correct
+        // If bundleIndex is not set to zero, it means the sender has specified a particular index, so it checks whether the block builder has input the correct
         // index value in the bundleIndexMap
         if(bundleIndex != 0){
           require(bundleIndexMap[msg.sender][blockNumber] == bundleIndex, "wrong bundle index");
