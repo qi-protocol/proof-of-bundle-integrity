@@ -1,66 +1,24 @@
-## Foundry
+* [Contract](https://github.com/qi-protocol/proof-of-bundle-integrity/tree/master/src)
+* [Front-end](https://github.com/qi-protocol/proof-of-bundle-integrity/tree/master/axiom-starter)
+* [Mock block builder](https://github.com/qi-protocol/proof-of-bundle-integrity/tree/master/mock-block-builder)(incomplete)
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Proof of Bundle Integrity allows bundle senders to express exact slot he/she wants his/her bundle to be placed on a block and trustlessly prove whether a block builder has tempered with the bundle leveraging zero knowledge proof
 
-Foundry consists of:
-
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+To test the contracts, run
+```
+forge test
 ```
 
-### Test
-
-```shell
-$ forge test
+To run mock block builder, go  to the [Mock block builder](https://github.com/qi-protocol/proof-of-bundle-integrity/tree/master/mock-block-builder) directory and run
+```
+cargo run --bin mock-block-builder
+```
+to call the `stampBundle()` function run
+```
+cargo run --bin sender
 ```
 
-### Format
-
-```shell
-$ forge fmt
+To run the front end app locally, to to the * [Front-end](https://github.com/qi-protocol/proof-of-bundle-integrity/tree/master/axiom-starter) directory and run 
 ```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+yarn dev
 ```
